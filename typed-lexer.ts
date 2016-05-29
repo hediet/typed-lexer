@@ -24,6 +24,7 @@ export interface ResultFactory<TToken, TState> {
     tokensWithLen(tokens: TokenWithLen<TToken>[], nextState?: TState): Result;
     token(token: TToken, nextState?: TState): Result;
     state(nextState: TState): Result;
+    nothing(): Result;
 }
 
 export type Handler<TToken, TState> = (matched: string, ret: ResultFactory<TToken, TState>, state: TState, matchedGroups?: RegExpExecArray) => Result | boolean;
@@ -83,6 +84,10 @@ class ResultFactoryImplementation<TToken, TState> implements ResultFactory<TToke
     public state(nextState: TState): ResultImplementation<TToken, TState> {
         return this.tokensWithPos([], nextState);
     }
+    
+    public nothing(): ResultImplementation<TToken, TState> {
+        return this.tokensWithPos([]);
+    }
 }
 
 abstract class Rule<TToken, TState> {    
@@ -93,7 +98,7 @@ abstract class Rule<TToken, TState> {
     
     public match(str: string, state: TState): ResultImplementation<TToken, TState>  { // | null
         
-        if (!this.statePredicate(state)) return null;
+        if (this.statePredicate && !this.statePredicate(state)) return null;
 
         let [ matchedStr, matchedGroups ] = this.internalMatch(str);
         if (matchedStr == null) return null;
@@ -123,7 +128,7 @@ class RegExRule<TToken, TState> extends Rule<TToken, TState> {
     
     protected internalMatch(str: string): [string, RegExpExecArray] {
         let matchedGroups = this.matchRegex.exec(str);
-        if (matchedGroups == null || matchedGroups.length == 0) return null;
+        if (matchedGroups == null || matchedGroups.length == 0) return [ null, null ];
         return [ matchedGroups[0], matchedGroups ];
     }
 }
@@ -135,7 +140,7 @@ class StringRule<TToken, TState> extends Rule<TToken, TState> {
     
     protected internalMatch(str: string): [string, RegExpExecArray] {
         const str2 = str.substr(0, this.matchStr.length);
-        if (str2 !== this.matchStr) return null;
+        if (str2 !== this.matchStr) return [ null, null ];
         return [ this.matchStr, null ];
     }
 }
@@ -157,7 +162,21 @@ export class LexerFactory<TToken, TState> {
         return this;
     }
 
-    public addSimpleRule(regex: RegExp|string, token: TToken, statePredicate?: Predicate<TState>, nextState?: TState): this {
+    public addDefaultRule(handler?: Handler<TToken, TState>, statePredicate?: Predicate<TState>): this {
+        if (handler === undefined)
+            handler = (m, ret) => ret.nothing(); 
+        
+        return this.addRule(/[\s\S]/, handler, statePredicate);
+    }
+    
+    public addDefaultSimpleRule(token?: TToken, statePredicate?: Predicate<TState>): this {
+        return this.addSimpleRule(/[\s\S]/, token, statePredicate);
+    }
+
+    public addSimpleRule(regex: RegExp|string, token?: TToken, statePredicate?: Predicate<TState>, nextState?: TState): this {
+        if (token === undefined)
+            return this.addRule(regex, (m, ret) => ret.state(nextState), statePredicate);
+            
         return this.addRule(regex, (m, ret) => ret.token(token, nextState), statePredicate);
     }
 
@@ -175,7 +194,7 @@ export class LexerFactory<TToken, TState> {
     
     public getLexerFor(input: string, startState?: TState): Lexer<TToken, TState> {
         if (startState === undefined)
-            startState = this.startState || null;
+            startState = (this.startState !== undefined) ? this.startState : null;
         return new Lexer<TToken, TState>(input, this.rules, startState);
     }
 }
@@ -192,11 +211,20 @@ export class Lexer<TToken, TState> {
         this.rules = rules;
     }
     
+    public readToEnd(): this {
+        while (true) {
+            let cur = this.next();
+            if (cur === undefined)
+                break;
+        }
+        return this;
+    }
+    
     public readAll(): TToken[] {
         const result: TToken[] = [];
         while (true) {
             let cur = this.next();
-            if (cur == undefined)
+            if (cur === undefined)
                 break;
             result.push(cur);
         }
@@ -208,7 +236,7 @@ export class Lexer<TToken, TState> {
         const result: TokenWithStr<TToken>[] = [];
         while (true) {
             let cur = this.next();
-            if (cur == undefined)
+            if (cur === undefined)
                 break;
             result.push({ token: cur, str: this.input.substr(this.cur.startPos, this.cur.length) });
         }
@@ -227,7 +255,7 @@ export class Lexer<TToken, TState> {
 
     public next(): TToken { // |undefined
         
-        if (this.restrained.length == 0) {
+        while (this.restrained.length == 0) {
             
             var curStr = this.input.substr(this.pos);
             
@@ -255,7 +283,7 @@ export class Lexer<TToken, TState> {
         }
         
         this.cur = this.restrained.shift();
-        return this.cur ? this.cur.token : undefined;
+        return this.cur.token;
     }
 }
 
@@ -263,3 +291,38 @@ export function matches<T>(...elements: T[]): Predicate<T> { return (other) => e
 export function matchesNot<T>(...elements: T[]): Predicate<T> { return (other) => !elements.some(element => element === other); }
 export function and<T>(...ops: Predicate<T>[]): Predicate<T> { return (other) => ops.every(o => o(other)); }
 export function or<T>(...ops: Predicate<T>[]): Predicate<T> { return (other) => ops.some(o => o(other)); }
+
+// from http://stackoverflow.com/questions/728360/most-elegant-way-to-clone-a-javascript-object
+export function clone<T>(obj: T): T {
+    var copy;
+
+    // Handle the 3 simple types, and null or undefined
+    if (null == obj || "object" != typeof obj) return obj;
+
+    // Handle Date
+    if (obj instanceof Date) {
+        copy = new Date();
+        copy.setTime(obj.getTime());
+        return copy;
+    }
+
+    // Handle Array
+    if (obj instanceof Array) {
+        copy = [];
+        for (var i = 0, len = obj.length; i < len; i++) {
+            copy[i] = clone(obj[i]);
+        }
+        return copy;
+    }
+
+    // Handle Object
+    if (obj instanceof Object) {
+        copy = {};
+        for (var attr in obj) {
+            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+        }
+        return copy;
+    }
+
+    throw new Error("Unable to copy obj! Its type isn't supported.");
+}
