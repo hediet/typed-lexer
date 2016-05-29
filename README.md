@@ -1,7 +1,8 @@
 # typed-lexer
 
-An easy to use lexer that features typescript typings.
-This lexer is inspired by [aaditmshah/lexer](https://github.com/aaditmshah/lexer "aaditmshah/lexer") but has a cleaner API.
+An easy to use lexer that features typescript type definition.
+This lexer is inspired by [aaditmshah/lexer](https://github.com/aaditmshah/lexer "aaditmshah/lexer") but tries 
+to provide a cleaner API.
 
 ## Installation
 
@@ -16,9 +17,9 @@ See the examples in the examples directory for other applications.
 import { LexerFactory, matches, or } from "typed-lexer";
 
 type State = "start" | "inRangeBlock";
-type TokenType = "WS" | "Identifier" | "DefinedIdentifier" | "Disj" | "CondDisj" 
-    | "Without" | "OpenParen" | "CloseParen" | "Opt" | "Star" | "PosStar" | "ProdDef" | "UnicodePropertyRef"
-    | "SingleChar" | "String" | "StringStart" | "StringEnd" | "HexRef" | "Range" | "RangeStart" | "RangeEnd" | "Invalid";
+type TokenType = "DefinedIdentifier" | "WS" | "ProdDef" 
+        | "Identifier" | "StringStart" | "String" | "StringEnd" 
+        | "RangeStart" | "Range" | "RangeEnd" | "Invalid";
 
 export class MyLexerFactory extends LexerFactory<TokenType, State> {
     constructor() {
@@ -27,7 +28,8 @@ export class MyLexerFactory extends LexerFactory<TokenType, State> {
         const start = matches<State>("start");
         const inRangeBlock = matches<State>("inRangeBlock");
 
-        this.addRuleWithRegexGroups(/([a-zA-Z][a-zA-Z0-9]*)(\s*)(::=)/, [ "DefinedIdentifier", "WS", "ProdDef" ], start);            
+        this.addRuleWithRegexGroups(/([a-zA-Z][a-zA-Z0-9]*)(\s*)(::=)/, 
+            [ "DefinedIdentifier", "WS", "ProdDef" ], start);            
         this.addSimpleRule(/[a-zA-Z_][a-zA-Z0-9_]*/, "Identifier", start);
         this.addSimpleRule(/\s+/, "WS", start);
 
