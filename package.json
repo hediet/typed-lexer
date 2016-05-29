@@ -1,0 +1,22 @@
+{
+  "name": "typed-lexer",
+  "version": "1.0.0",
+  "description": "An easy to use lexer that features typescript typings.",
+  "main": "dist/typed-lexer.js",
+  "typings": "lib/typed-lexer",
+  "files": [ "lib/" ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "lexer",
+    "typescript",
+    "tokenizer"
+  ],
+  "author": "Henning Dieterichs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hediet/typed-lexer.git"
+  },
+  "license": "MIT"
+}

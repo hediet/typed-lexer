@@ -1,0 +1,11 @@
+{
+    "version": "1.6.2",
+    "compilerOptions": {
+        "module": "commonjs",
+        "declaration": true,
+        "outDir": "dist/"
+    },
+    "files": [
+        "typed-lexer.ts"
+    ]
+}
