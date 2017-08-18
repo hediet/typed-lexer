@@ -2,8 +2,8 @@
   "name": "typed-lexer",
   "version": "1.0.2",
   "description": "An easy to use lexer that features typescript typings.",
-  "main": "dist/typed-lexer.js",
-  "typings": "dist/typed-lexer",
+  "main": "dist/index.js",
+  "typings": "dist/index",
   "files": [ "dist/" ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

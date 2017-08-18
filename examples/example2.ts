@@ -1,23 +1,25 @@
-import { LexerFactory, matches, or } from "../typed-lexer";
+import { StaticLexingRules, matches, or } from "../typed-lexer";
 
-type State = "start" | "inRangeBlock";
+enum State { start, inRangeBlock };
 type TokenType = "WS" | "Identifier" | "DefinedIdentifier" | "Disj" | "CondDisj" 
     | "Without" | "OpenParen" | "CloseParen" | "Opt" | "Star" | "PosStar" | "ProdDef" | "UnicodePropertyRef"
     | "SingleChar" | "String" | "StringStart" | "StringEnd" | "HexRef" | "Range" | "RangeStart" | "RangeEnd" | "Invalid";
 
 
-export class EglLexerFactory extends LexerFactory<TokenType, State> {
+export class EglLexingRules extends StaticLexingRules<TokenType, State> {
     constructor() {
-        super("start");
+        super(State.start);
         
-        const start = matches<State>("start");
-        const inRangeBlock = matches<State>("inRangeBlock");
+        const r = this.rules;
 
-        this.addRuleWithRegexGroups(/([a-zA-Z][a-zA-Z0-9]*)(\s*)(::=)/, [ "DefinedIdentifier", "WS", "ProdDef" ], start);            
-        this.addSimpleRule(/[a-zA-Z_][a-zA-Z0-9_]*/, "Identifier", start);
-        this.addSimpleRule(/\s+/, "WS", start);
+        const start = matches(State.start);
+        const inRangeBlock = matches(State.inRangeBlock);
 
-        this.addSimpleRules({
+        r.addRuleWithRegexGroups(/([a-zA-Z][a-zA-Z0-9]*)(\s*)(::=)/, [ "DefinedIdentifier", "WS", "ProdDef" ], start);            
+        r.addSimpleRule(/[a-zA-Z_][a-zA-Z0-9_]*/, "Identifier", start);
+        r.addSimpleRule(/\s+/, "WS", start);
+
+        r.addSimpleRules({
             "||": "CondDisj",
             "|": "Disj",
             ".": "SingleChar",
@@ -30,22 +32,21 @@ export class EglLexerFactory extends LexerFactory<TokenType, State> {
             "#": "UnicodePropertyRef"
         }, start);
         
-        this.addRuleWithRegexGroups(/(")(.*?)(")/,  [ "StringStart", "String", "StringEnd" ], start);
-        this.addRuleWithRegexGroups(/(')(.*?)(')/, [ "StringStart", "String", "StringEnd" ], start);
-        this.addSimpleRule(/#x[0-9A-F]+/, "HexRef", or(start, inRangeBlock));
+        r.addRuleWithRegexGroups(/(")(.*?)(")/,  [ "StringStart", "String", "StringEnd" ], start);
+        r.addRuleWithRegexGroups(/(')(.*?)(')/, [ "StringStart", "String", "StringEnd" ], start);
+        r.addSimpleRule(/#x[0-9A-F]+/, "HexRef", or(start, inRangeBlock));
 
-        this.addSimpleRule("[", "RangeStart", start, "inRangeBlock");
-        this.addSimpleRule("]", "RangeEnd", inRangeBlock, "start");
-        this.addSimpleRule("-", "Range", inRangeBlock);
-        this.addDefaultSimpleRule("String", inRangeBlock);
+        r.addSimpleRule("[", "RangeStart", start, State.inRangeBlock);
+        r.addSimpleRule("]", "RangeEnd", inRangeBlock, State.start);
+        r.addSimpleRule("-", "Range", inRangeBlock);
+        r.addDefaultSimpleRule("String", inRangeBlock);
         
-        this.addDefaultSimpleRule("Invalid");
+        r.addDefaultSimpleRule("Invalid");
     }
 }
 
-const result = new EglLexerFactory()
-    .getLexerFor("foo ::= (bar (',' bar)*)?")
-    .readAllWithStr();
+const result = new EglLexingRules()
+    .lexTokensWithStr("foo ::= (bar (',' bar)*)?");
     
 for (const t of result)
     console.log(`${t.token} (${t.str})`);

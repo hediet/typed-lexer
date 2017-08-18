@@ -1,4 +1,4 @@
-import { LexerFactory, clone, TokenWithLen } from "../typed-lexer";
+import { LexerFactory, clone, TokenWithLen } from "../index";
 
 
 let lineCounter = new LexerFactory<any, { line: number, column: number }>({ line: 0, column: 0 });

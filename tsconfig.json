@@ -1,11 +1,18 @@
 {
-    "version": "1.6.2",
-    "compilerOptions": {
-        "module": "commonjs",
-        "declaration": true,
-        "outDir": "dist/"
-    },
-    "files": [
-        "typed-lexer.ts"
-    ]
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es5",
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"sourceMap": true,
+		"jsx": "react",
+		"outDir": "dist",
+		"experimentalDecorators": true,
+        "isolatedModules": true,
+        "declaration": true
+	},
+	"include": [
+		"src/**/*"
+	],
+	"exclude": []
 }
